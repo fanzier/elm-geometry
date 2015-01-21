@@ -1,0 +1,33 @@
+<html>
+<head>
+<title>Dynamic Geometry in Elm</title>
+<script type="text/javascript" src="elm.js"></script>
+</head>
+<body>
+<div id="wrap" style="margin: auto;width:1202px;">
+  <div id="geo" style="height: 600px;width: 1200px;border: 1px solid gray;">
+  </div>
+  <button id="lineButton">Line</button>
+  <button id="circleButton">Circle</button>
+  <button id="intersectButton">Intersect</button>
+  <button id="deleteButton">Delete</button>
+  <script type="text/javascript">
+    var geoDiv = document.getElementById('geo');
+    var elmGeo = Elm.embed(Elm.Main, geoDiv,
+      { deleteButtonClick: []
+      , circleButtonClick: []
+      , lineButtonClick: []
+      , intersectButtonClick: []
+      });
+    var lineButton = document.getElementById('lineButton');
+    var circleButton = document.getElementById('circleButton');
+    var deleteButton = document.getElementById('deleteButton');
+    var intersectButton = document.getElementById('intersectButton');
+    lineButton.onclick = function() { elmGeo.ports.lineButtonClick.send([]); }
+    circleButton.onclick = function() { elmGeo.ports.circleButtonClick.send([]); }
+    deleteButton.onclick = function() { elmGeo.ports.deleteButtonClick.send([]); }
+    intersectButton.onclick = function() { elmGeo.ports.intersectButtonClick.send([]); }
+  </script>
+</div>
+</body>
+</html>
