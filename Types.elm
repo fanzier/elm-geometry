@@ -48,7 +48,7 @@ type alias Model =
   , mouseDown : Bool
   , mouseDragged : Bool
   , mousePosition : Vector
-  , hovered : Set.Set ID
+  , hovered : Maybe ID
   }
 
 -- | The mode stores which command is currently being executed.
@@ -63,7 +63,7 @@ type Mode
   | Intersect0
   | Intersect1 ID
   | Delete
-  | Dragging ID Bool Mode -- was it actually moved, prev. mode
+  | Dragging ID
 
 -- * User interaction
 

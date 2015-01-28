@@ -166,117 +166,162 @@ update action m = case action of
   _ -> m
 
 processMouseDown : Vector -> Model -> Model
-processMouseDown { x, y } m = case m.mode of
+processMouseDown p m = let { x, y } = p in case m.mode of
   DefaultMode ->
-    case findClosestPointAt (x,y) m of
-      Just p -> { m | mode <- Dragging p False m.mode }
+    case closest <| List.filter (isFreePoint << snd) <| pointsAt p m of
+      Just p -> { m | mode <- Dragging p.id }
       Nothing -> m
   _ -> m
 
 processDrag : Vector -> Vector -> Model -> Model
 processDrag from to m = case m.mode of
-  Dragging p _ mode ->
+  Dragging p ->
     let objects' = Dict.update p modCoords m.objects
         modCoords = Maybe.map (\p -> case p.object of
           FreePoint v -> { p | object <- FreePoint { x = to.x - from.x + v.x, y = to.y - from.y + v.y } }
           _ -> p
           )
-    in updateRevDeps p { m | objects <- objects', mode <- Dragging p True mode }
+    in updateRevDeps p { m | objects <- objects' }
   _ -> m
 
 processMove : Vector -> Vector -> Model -> Model
-processMove _ pos m = { m | hovered <- findObjectIDsAt pos m }
+processMove _ pos m = let { x, y } = pos in case m.mode of
+  DefaultMode -> { m | hovered <- map (\o -> o.id)
+    <| closest <| objectsAt pos m }
+  Selected _ -> { m | hovered <- map (\o -> o.id)
+    <| closest <| objectsAt pos m }
+  DrawLine0 -> { m | hovered <- map (\o -> o.id)
+    <| closest <| List.filter (isPoint << snd) <| pointsAt pos m }
+  DrawLine1 p -> { m | hovered <- map (\o -> o.id)
+    <| closest <| List.filter (isPoint << snd) <| pointsAt pos m }
+  DrawCircle0 -> { m | hovered <- map (\o -> o.id)
+    <| closest <| List.filter (isPoint << snd) <| pointsAt pos m }
+  DrawCircle1 p -> { m | hovered <- map (\o -> o.id)
+    <| closest <| List.filter (isPoint << snd) <| pointsAt pos m }
+  Intersect0 -> { m | hovered <- map (\o -> o.id)
+    <| closest <| List.filter (isOneDim << snd) <| oneDimsAt pos m }
+  Intersect1 id1 -> { m | hovered <- map (\o -> o.id)
+    <| closest <| List.filter (isOneDim << snd) <| oneDimsAt pos m }
+  Delete -> { m | hovered <- map (\o -> o.id)
+    <| closest <| objectsAt pos m }
+  Dragging _ -> m
 
 processEndDrag : Vector -> Model -> Model
 processEndDrag { x, y } m = case m.mode of
-  Dragging _ _ mode -> { m | mode <- mode }
+  Dragging _ -> { m | mode <- DefaultMode }
   _ -> m
 
 processMouseUp : Vector -> Model -> Model
-processMouseUp { x, y } m = case m.mode of
-  DefaultMode -> newFreePoint { x = x, y = y } m
-  Selected _ -> {m | mode <- DefaultMode }
-  DrawLine0 -> case findClosestPointAt (x,y) m of
-    Just p -> { m | mode <- DrawLine1 p }
+processMouseUp pos m = let { x, y } = pos in case m.mode of
+  DefaultMode -> case closest <| objectsAt pos m of
+    Just o -> {m | mode <- Selected o.id }
+    Nothing -> newFreePoint pos {m | mode <- DefaultMode }
+  Selected _ -> case closest <| objectsAt pos m of
+    Just o -> {m | mode <- Selected o.id }
+    Nothing -> {m | mode <- DefaultMode }
+  DrawLine0 -> case closest <| List.filter (isPoint << snd) <| pointsAt pos m of
+    Just p -> { m | mode <- DrawLine1 p.id }
     Nothing -> { m | mode <- DefaultMode }
-  DrawLine1 p -> case findClosestPointAt (x,y) m of
-    Just q -> newStraightLine p q { m | mode <- DefaultMode }
+  DrawLine1 p -> case closest <| List.filter (isPoint << snd) <| pointsAt pos m of
+    Just q -> newStraightLine p q.id { m | mode <- DefaultMode }
     Nothing -> { m | mode <- DefaultMode }
-  DrawCircle0 -> case findClosestPointAt (x,y) m of
-    Just p -> { m | mode <- DrawCircle1 p }
+  DrawCircle0 -> case closest <| List.filter (isPoint << snd) <| pointsAt pos m of
+    Just p -> { m | mode <- DrawCircle1 p.id }
     Nothing -> { m | mode <- DefaultMode }
-  DrawCircle1 p -> case findClosestPointAt (x,y) m of
-    Just q -> newCircle p q { m | mode <- DefaultMode }
+  DrawCircle1 p -> case closest <| List.filter (isPoint << snd) <| pointsAt pos m of
+    Just q -> newCircle p q.id { m | mode <- DefaultMode }
     Nothing -> { m | mode <- DefaultMode }
-  Intersect0 -> case Set.toList <| findOneDimObjectIDsAt { x = x, y = y } m of
-    [] -> { m | mode <- DefaultMode }
-    [id] -> { m | mode <- Intersect1 id }
+  Intersect0 -> case closest <| List.filter (isOneDim << snd) <| oneDimsAt pos m of
+    Nothing -> { m | mode <- DefaultMode }
+    Just obj -> { m | mode <- Intersect1 obj.id }
+  Intersect1 id1 -> case closest <| oneDimsAt pos m of
+    Nothing -> { m | mode <- DefaultMode }
+    Just obj -> newIntersection id1 obj.id { x = x, y = y } { m | mode <- DefaultMode }
+  Delete -> case closest <| objectsAt pos m of
+    Just obj -> deleteObject obj.id { m | mode <- DefaultMode }
     _ -> { m | mode <- DefaultMode }
-  Intersect1 id1 -> case Set.toList <| findOneDimObjectIDsAt { x = x, y = y } m of
-    [] -> { m | mode <- DefaultMode }
-    [id2] -> newIntersection id1 id2 { x = x, y = y } { m | mode <- DefaultMode }
-    _ -> { m | mode <- DefaultMode }
-  Delete -> case Set.toList <| findObjectIDsAt { x = x, y = y } m of
-    [id] -> deleteObject id { m | mode <- DefaultMode }
-    _ -> { m | mode <- DefaultMode }
-  Dragging _ _ mode -> case findClosestPointAt (x, y) m of
-    Just p -> case mode of
-      _ -> { m | mode <- Selected p }
-    Nothing ->  case mode of
-      Selected _ -> { m | mode <- DefaultMode }
-      _ -> newFreePoint { x = x, y = y } { m | mode <- mode }
-
+  Dragging p -> { m | mode <- Selected p }
 -- * Helpers
 
 isHighlighted : Model -> ID -> Bool
 isHighlighted m p = isSelected m p || isHovered m p
 
 isSelected : Model -> ID -> Bool
-isSelected m p = case m.mode of
-  Selected q -> if q == p then True else False
-  Dragging q _ _ -> if q == p then True else False
-  _ -> False
+isSelected m i = case m.mode of
+  DefaultMode -> False
+  Selected id -> id == i
+  DrawLine0 -> False
+  DrawLine1 p -> p == i
+  DrawCircle0 -> False
+  DrawCircle1 p -> p == i
+  Intersect0 -> False
+  Intersect1 p -> p == i
+  Delete -> False
+  Dragging p -> p == i
 
 isHovered : Model -> ID -> Bool
-isHovered m p = Set.member p m.hovered
+isHovered m p = m.hovered == Just p
 
-findObjectIDsAt : Vector -> Model -> Set.Set ID
-findObjectIDsAt v = Set.fromList << List.map (\obj -> obj.id) << findObjectsAt v
+isFreePoint : GeoObject -> Bool
+isFreePoint { object } = case object of
+  FreePoint _ -> True
+  _ -> False
 
-findObjectsAt : Vector -> Model -> List GeoObject
-findObjectsAt pos m = List.filter (isObjectAt pos) <| Dict.values m.objects
+isIntersection : GeoObject -> Bool
+isIntersection { object } = case object of
+  Intersect _ -> True
+  _ -> False
 
-findOneDimObjectIDsAt : Vector -> Model -> Set.Set ID
-findOneDimObjectIDsAt v = Set.fromList << List.map (\obj -> obj.id) << List.filter isOneDim << findObjectsAt v
-
-isOneDim : GeoObject -> Bool
-isOneDim geo = case geo.object of
+isLine : GeoObject -> Bool
+isLine { object } = case object of
   Straight _ -> True
+  _ -> False
+
+isCircle : GeoObject -> Bool
+isCircle { object } = case object of
   Circle _ -> True
   _ -> False
 
-isObjectAt : Vector -> GeoObject -> Bool
-isObjectAt p obj = case obj.object of
-  FreePoint q -> closeEnough p q
-  Straight { desc } -> isOnLine p desc
-  Circle { desc } -> isOnCircle p desc
-  _ -> False
+isOneDim : GeoObject -> Bool
+isOneDim geo = isLine geo || isCircle geo
 
-findClosestPointAt : (Float, Float) -> Model -> Maybe ID
-findClosestPointAt (x,y) m =
+isPoint : GeoObject -> Bool
+isPoint geo = isFreePoint geo || isIntersection geo
+
+threshold : Float
+threshold = 8
+
+pointsAt : Vector -> Model -> List (Float, GeoObject)
+pointsAt pos m = withDistance pos <| List.filter isPoint <| Dict.values m.objects
+
+oneDimsAt : Vector -> Model -> List (Float, GeoObject)
+oneDimsAt pos m = withDistance pos <| List.filter isOneDim <| Dict.values m.objects
+
+objectsAt : Vector -> Model -> List (Float, GeoObject)
+objectsAt pos m =
+  let list = withDistance pos <| Dict.values m.objects
+      filteredList = List.filter (isPoint << snd) list
+  in if List.isEmpty filteredList then list else filteredList
+
+withDistance : Vector -> List GeoObject -> List (Float, GeoObject)
+withDistance pos geos = List.filter ((\d -> d < threshold) << fst)
+  <| List.map (\geo -> (distance pos geo, geo)) geos
+
+closest : List (Float, GeoObject) -> Maybe GeoObject
+closest list =
   let
-    step val cur v = let d = dist v {x = x, y = y} in case cur of
-      Just (curP, curMin) -> if d < curMin then Just (val.id, d) else cur
-      Nothing -> if d < threshold then Just (val.id, d) else cur
-    incMin = \_ val cur -> case val.object of
-      FreePoint v -> step val cur v
-      Intersect { point } -> case point of
-        Just v -> step val cur v
-        Nothing -> cur
-      _ -> cur
-    dist p1 p2 = (p1.x - p2.x) ^ 2 + (p1.y - p2.y) ^ 2
-    threshold = 100
-  in Maybe.map fst <| Dict.foldr incMin Nothing m.objects
+    go : (Float, GeoObject) -> Maybe (Float, GeoObject) -> Maybe (Float, GeoObject)
+    go (dist, geo) m = case m of
+      Nothing -> Just (dist, geo)
+      Just (bestDist, bestGeo) -> if dist < bestDist then Just (dist, geo) else m
+  in map snd <| List.foldr go Nothing list
+
+distance : Vector -> GeoObject -> Float
+distance p { object } = case object of
+  FreePoint q -> pointDistance p q
+  Intersect { point } -> pointDistanceMaybe p point
+  Straight { desc } -> lineDistance p desc
+  Circle { desc } -> circleDistance p desc
 
 transformMouseCoords : (Int, Int) -> (Int, Int) -> (Float, Float)
 transformMouseCoords (w, h) (x, y) = (toFloat <| x - w // 2, toFloat <| h // 2 - y)
@@ -290,6 +335,6 @@ emptyModel =
   , mouseDown = False
   , mouseDragged = False
   , mousePosition = { x = 0, y = 0 }
-  , hovered = Set.empty
+  , hovered = Nothing
   }
 

@@ -56,23 +56,25 @@ pointsToCircleDescription p q =
     then Nothing
     else Just { center = p, radius = radius }
 
--- * Find out whether points are on lines or circles
+-- * Distances of geometric objects to a point
 
-threshold : number
-threshold = 10
+pointDistance : Vector -> Vector -> Float
+pointDistance p q = norm (p `minus` q)
 
-closeEnough : Vector -> Vector -> Bool
-closeEnough p q = norm (p `minus` q) < threshold
+pointDistanceMaybe : Vector -> Maybe Vector -> Float
+pointDistanceMaybe p q = case q of
+  Just q -> norm (p `minus` q)
+  Nothing -> 0.0 / 0.0 -- NaN
 
-isOnLine : Vector -> Maybe LineDescription -> Bool
-isOnLine p desc = case desc of
-  Just { offset, normal } -> abs ((normal `dot` p) - offset) < threshold
-  Nothing -> False
+lineDistance : Vector -> Maybe LineDescription -> Float
+lineDistance p desc = case desc of
+  Just { offset, normal } -> abs ((normal `dot` p) - offset)
+  Nothing -> 0.0 / 0.0 -- NaN
 
-isOnCircle : Vector -> Maybe CircleDescription -> Bool
-isOnCircle p desc = case desc of
-  Just { center, radius } -> abs (norm (center `minus` p) - radius) < threshold
-  Nothing -> False
+circleDistance : Vector -> Maybe CircleDescription -> Float
+circleDistance p desc = case desc of
+  Just { center, radius } -> abs (norm (center `minus` p) - radius)
+  Nothing -> 0.0 / 0.0 -- NaN
 
 -- * Compute Intersections
 
