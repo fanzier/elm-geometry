@@ -1711,10 +1711,21 @@ Elm.Draw.make = function (_elm) {
    $Model = Elm.Model.make(_elm),
    $Types = Elm.Types.make(_elm);
    var emptyForm = $Graphics$Collage.group(_L.fromArray([]));
+   var drawIntersectPoint = F2(function (highlighted,
+   p) {
+      return function () {
+         var point = $Graphics$Collage.filled($Color.black)($Graphics$Collage.circle(highlighted ? 6 : 4));
+         return A2($Graphics$Collage.move,
+         {ctor: "_Tuple2"
+         ,_0: p.x
+         ,_1: p.y},
+         point);
+      }();
+   });
    var drawFreePoint = F2(function (highlighted,
    p) {
       return function () {
-         var point = $Graphics$Collage.filled($Color.red)($Graphics$Collage.circle(highlighted ? 8 : 5));
+         var point = $Graphics$Collage.filled($Color.red)($Graphics$Collage.circle(highlighted ? 6 : 4));
          return A2($Graphics$Collage.move,
          {ctor: "_Tuple2"
          ,_0: p.x
@@ -1797,7 +1808,7 @@ Elm.Draw.make = function (_elm) {
                  var _v13 = _v6._0.point;
                  switch (_v13.ctor)
                  {case "Just":
-                    return A2(drawFreePoint,
+                    return A2(drawIntersectPoint,
                       A2($Model.isHighlighted,
                       m,
                       geo.id),
@@ -1845,6 +1856,7 @@ Elm.Draw.make = function (_elm) {
                       ,drawCircle: drawCircle
                       ,drawLine: drawLine
                       ,drawFreePoint: drawFreePoint
+                      ,drawIntersectPoint: drawIntersectPoint
                       ,emptyForm: emptyForm};
    return _elm.Draw.values;
 };
@@ -3069,10 +3081,9 @@ Elm.Math.make = function (_elm) {
          {case "NegativeOne": return -1;
             case "PositiveOne": return 1;}
          _U.badCase($moduleName,
-         "between lines 105 and 107");
+         "between lines 107 and 109");
       }();
    };
-   var threshold = 10;
    var rotate90 = function (_v1) {
       return function () {
          return {_: {}
@@ -3096,18 +3107,18 @@ Elm.Math.make = function (_elm) {
                 ,y: v.y / n};
       }();
    };
-   var isOnLine = F2(function (p,
+   var lineDistance = F2(function (p,
    desc) {
       return function () {
          switch (desc.ctor)
          {case "Just":
-            return _U.cmp($Basics.abs(A2(dot,
+            return $Basics.abs(A2(dot,
               desc._0.normal,
-              p) - desc._0.offset),
-              threshold) < 0;
-            case "Nothing": return false;}
+              p) - desc._0.offset);
+            case "Nothing":
+            return 0.0 / 0.0;}
          _U.badCase($moduleName,
-         "between lines 68 and 70");
+         "between lines 70 and 72");
       }();
    });
    var lineLineIntersection = F2(function (line1,
@@ -3177,25 +3188,34 @@ Elm.Math.make = function (_elm) {
                                            ,radius: radius});
       }();
    });
-   var closeEnough = F2(function (p,
+   var pointDistance = F2(function (p,
    q) {
-      return _U.cmp(norm(A2(minus,
-      p,
-      q)),
-      threshold) < 0;
+      return norm(A2(minus,p,q));
    });
-   var isOnCircle = F2(function (p,
+   var pointDistanceMaybe = F2(function (p,
+   q) {
+      return function () {
+         switch (q.ctor)
+         {case "Just":
+            return norm(A2(minus,p,q._0));
+            case "Nothing":
+            return 0.0 / 0.0;}
+         _U.badCase($moduleName,
+         "between lines 65 and 67");
+      }();
+   });
+   var circleDistance = F2(function (p,
    desc) {
       return function () {
          switch (desc.ctor)
          {case "Just":
-            return _U.cmp($Basics.abs(norm(A2(minus,
+            return $Basics.abs(norm(A2(minus,
               desc._0.center,
-              p)) - desc._0.radius),
-              threshold) < 0;
-            case "Nothing": return false;}
+              p)) - desc._0.radius);
+            case "Nothing":
+            return 0.0 / 0.0;}
          _U.badCase($moduleName,
-         "between lines 73 and 75");
+         "between lines 75 and 77");
       }();
    });
    var chooseCloserPointCC = F5(function (m,
@@ -3223,16 +3243,16 @@ Elm.Math.make = function (_elm) {
              ,y: p1.y + p2.y};
    });
    var findRemotePointsOnLine = F2(function (distance,
-   _v9) {
+   _v11) {
       return function () {
          return function () {
-            var tangent = rotate90(_v9.normal);
+            var tangent = rotate90(_v11.normal);
             var shift = A2(times,
             distance,
             tangent);
             var point = A2(times,
-            _v9.offset,
-            _v9.normal);
+            _v11.offset,
+            _v11.normal);
             return {ctor: "_Tuple2"
                    ,_0: A2(minus,point,shift)
                    ,_1: A2(plus,point,shift)};
@@ -3311,10 +3331,10 @@ Elm.Math.make = function (_elm) {
                       ,pointsToLineDescription: pointsToLineDescription
                       ,findRemotePointsOnLine: findRemotePointsOnLine
                       ,pointsToCircleDescription: pointsToCircleDescription
-                      ,threshold: threshold
-                      ,closeEnough: closeEnough
-                      ,isOnLine: isOnLine
-                      ,isOnCircle: isOnCircle
+                      ,pointDistance: pointDistance
+                      ,pointDistanceMaybe: pointDistanceMaybe
+                      ,lineDistance: lineDistance
+                      ,circleDistance: circleDistance
                       ,lineLineIntersection: lineLineIntersection
                       ,lineCircleIntersection: lineCircleIntersection
                       ,getSign: getSign
@@ -3420,7 +3440,7 @@ Elm.Model.make = function (_elm) {
                     ,dimensions: {ctor: "_Tuple2"
                                  ,_0: 1200
                                  ,_1: 600}
-                    ,hovered: $Set.empty
+                    ,hovered: $Maybe.Nothing
                     ,mode: $Types.DefaultMode
                     ,mouseDown: false
                     ,mouseDragged: false
@@ -3441,148 +3461,183 @@ Elm.Model.make = function (_elm) {
                            ,_0: $Basics.toFloat(_v1._0 - (_v0._0 / 2 | 0))
                            ,_1: $Basics.toFloat((_v0._1 / 2 | 0) - _v1._1)};}
                  _U.badCase($moduleName,
-                 "on line 282, column 39 to 83");
+                 "on line 327, column 39 to 83");
               }();}
          _U.badCase($moduleName,
-         "on line 282, column 39 to 83");
+         "on line 327, column 39 to 83");
       }();
    });
-   var findClosestPointAt = F2(function (_v8,
-   m) {
+   var distance = F2(function (p,
+   _v8) {
       return function () {
-         switch (_v8.ctor)
-         {case "_Tuple2":
+         return function () {
+            var _v10 = _v8.object;
+            switch (_v10.ctor)
+            {case "Circle":
+               return A2($Math.circleDistance,
+                 p,
+                 _v10._0.desc);
+               case "FreePoint":
+               return A2($Math.pointDistance,
+                 p,
+                 _v10._0);
+               case "Intersect":
+               return A2($Math.pointDistanceMaybe,
+                 p,
+                 _v10._0.point);
+               case "Straight":
+               return A2($Math.lineDistance,
+                 p,
+                 _v10._0.desc);}
+            _U.badCase($moduleName,
+            "between lines 320 and 324");
+         }();
+      }();
+   });
+   var closest = function (list) {
+      return function () {
+         var go = F2(function (_v15,
+         m) {
             return function () {
-                 var threshold = 100;
-                 var dist = F2(function (p1,p2) {
-                    return Math.pow(p1.x - p2.x,
-                    2) + Math.pow(p1.y - p2.y,2);
-                 });
-                 var step = F3(function (val,
-                 cur,
-                 v) {
-                    return function () {
-                       var d = A2(dist,
-                       v,
-                       {_: {},x: _v8._0,y: _v8._1});
-                       return function () {
-                          switch (cur.ctor)
-                          {case "Just":
-                             switch (cur._0.ctor)
-                               {case "_Tuple2":
-                                  return _U.cmp(d,
-                                    cur._0._1) < 0 ? $Maybe.Just({ctor: "_Tuple2"
-                                                                 ,_0: val.id
-                                                                 ,_1: d}) : cur;}
-                               break;
-                             case "Nothing": return _U.cmp(d,
-                               threshold) < 0 ? $Maybe.Just({ctor: "_Tuple2"
-                                                            ,_0: val.id
-                                                            ,_1: d}) : cur;}
-                          _U.badCase($moduleName,
-                          "between lines 268 and 271");
-                       }();
-                    }();
-                 });
-                 var incMin = F3(function (_v16,
-                 val,
-                 cur) {
-                    return function () {
-                       return function () {
-                          var _v18 = val.object;
-                          switch (_v18.ctor)
-                          {case "FreePoint":
-                             return A3(step,val,cur,_v18._0);
-                             case "Intersect":
-                             return function () {
-                                  var _v21 = _v18._0.point;
-                                  switch (_v21.ctor)
-                                  {case "Just": return A3(step,
-                                       val,
-                                       cur,
-                                       _v21._0);
-                                     case "Nothing": return cur;}
-                                  _U.badCase($moduleName,
-                                  "between lines 273 and 276");
-                               }();}
-                          return cur;
-                       }();
-                    }();
-                 });
-                 return $Maybe.map($Basics.fst)(A3($Dict.foldr,
-                 incMin,
-                 $Maybe.Nothing,
-                 m.objects));
-              }();}
-         _U.badCase($moduleName,
-         "between lines 267 and 279");
+               switch (_v15.ctor)
+               {case "_Tuple2":
+                  return function () {
+                       switch (m.ctor)
+                       {case "Just": switch (m._0.ctor)
+                            {case "_Tuple2":
+                               return _U.cmp(_v15._0,
+                                 m._0._0) < 0 ? $Maybe.Just({ctor: "_Tuple2"
+                                                            ,_0: _v15._0
+                                                            ,_1: _v15._1}) : m;}
+                            break;
+                          case "Nothing":
+                          return $Maybe.Just({ctor: "_Tuple2"
+                                             ,_0: _v15._0
+                                             ,_1: _v15._1});}
+                       _U.badCase($moduleName,
+                       "between lines 314 and 317");
+                    }();}
+               _U.badCase($moduleName,
+               "between lines 314 and 317");
+            }();
+         });
+         return $Maybe.map($Basics.snd)(A3($List.foldr,
+         go,
+         $Maybe.Nothing,
+         list));
       }();
+   };
+   var threshold = 8;
+   var withDistance = F2(function (pos,
+   geos) {
+      return $List.filter(function ($) {
+         return function (d) {
+            return _U.cmp(d,
+            threshold) < 0;
+         }($Basics.fst($));
+      })(A2($List.map,
+      function (geo) {
+         return {ctor: "_Tuple2"
+                ,_0: A2(distance,pos,geo)
+                ,_1: geo};
+      },
+      geos));
    });
-   var isObjectAt = F2(function (p,
-   obj) {
+   var isCircle = function (_v23) {
       return function () {
-         var _v23 = obj.object;
-         switch (_v23.ctor)
-         {case "Circle":
-            return A2($Math.isOnCircle,
-              p,
-              _v23._0.desc);
-            case "FreePoint":
-            return A2($Math.closeEnough,
-              p,
-              _v23._0);
-            case "Straight":
-            return A2($Math.isOnLine,
-              p,
-              _v23._0.desc);}
-         return false;
+         return function () {
+            var _v25 = _v23.object;
+            switch (_v25.ctor)
+            {case "Circle": return true;}
+            return false;
+         }();
       }();
-   });
+   };
+   var isLine = function (_v27) {
+      return function () {
+         return function () {
+            var _v29 = _v27.object;
+            switch (_v29.ctor)
+            {case "Straight": return true;}
+            return false;
+         }();
+      }();
+   };
    var isOneDim = function (geo) {
+      return isLine(geo) || isCircle(geo);
+   };
+   var oneDimsAt = F2(function (pos,
+   m) {
+      return withDistance(pos)($List.filter(isOneDim)($Dict.values(m.objects)));
+   });
+   var isIntersection = function (_v31) {
       return function () {
-         var _v27 = geo.object;
-         switch (_v27.ctor)
-         {case "Circle": return true;
-            case "Straight": return true;}
-         return false;
+         return function () {
+            var _v33 = _v31.object;
+            switch (_v33.ctor)
+            {case "Intersect": return true;}
+            return false;
+         }();
       }();
    };
-   var findObjectsAt = F2(function (pos,
+   var isFreePoint = function (_v35) {
+      return function () {
+         return function () {
+            var _v37 = _v35.object;
+            switch (_v37.ctor)
+            {case "FreePoint": return true;}
+            return false;
+         }();
+      }();
+   };
+   var isPoint = function (geo) {
+      return isFreePoint(geo) || isIntersection(geo);
+   };
+   var pointsAt = F2(function (pos,
    m) {
-      return $List.filter(isObjectAt(pos))($Dict.values(m.objects));
+      return withDistance(pos)($List.filter(isPoint)($Dict.values(m.objects)));
    });
-   var findOneDimObjectIDsAt = function (v) {
-      return function ($) {
-         return $Set.fromList($List.map(function (obj) {
-            return obj.id;
-         })($List.filter(isOneDim)(findObjectsAt(v)($))));
-      };
-   };
-   var findObjectIDsAt = function (v) {
-      return function ($) {
-         return $Set.fromList($List.map(function (obj) {
-            return obj.id;
-         })(findObjectsAt(v)($)));
-      };
-   };
+   var objectsAt = F2(function (pos,
+   m) {
+      return function () {
+         var list = withDistance(pos)($Dict.values(m.objects));
+         var filteredList = A2($List.filter,
+         function ($) {
+            return isPoint($Basics.snd($));
+         },
+         list);
+         return $List.isEmpty(filteredList) ? list : filteredList;
+      }();
+   });
    var isHovered = F2(function (m,
    p) {
-      return A2($Set.member,
-      p,
-      m.hovered);
+      return _U.eq(m.hovered,
+      $Maybe.Just(p));
    });
    var isSelected = F2(function (m,
-   p) {
+   i) {
       return function () {
-         var _v30 = m.mode;
-         switch (_v30.ctor)
-         {case "Dragging":
-            return _U.eq(_v30._0,
-              p) ? true : false;
+         var _v39 = m.mode;
+         switch (_v39.ctor)
+         {case "DefaultMode":
+            return false;
+            case "Delete": return false;
+            case "Dragging":
+            return _U.eq(_v39._0,i);
+            case "DrawCircle0":
+            return false;
+            case "DrawCircle1":
+            return _U.eq(_v39._0,i);
+            case "DrawLine0": return false;
+            case "DrawLine1":
+            return _U.eq(_v39._0,i);
+            case "Intersect0": return false;
+            case "Intersect1":
+            return _U.eq(_v39._0,i);
             case "Selected":
-            return _U.eq(_v30._0,
-              p) ? true : false;}
-         return false;
+            return _U.eq(_v39._0,i);}
+         _U.badCase($moduleName,
+         "between lines 250 and 260");
       }();
    });
    var isHighlighted = F2(function (m,
@@ -3591,49 +3646,124 @@ Elm.Model.make = function (_elm) {
       m,
       p) || A2(isHovered,m,p);
    });
-   var processEndDrag = F2(function (_v35,
+   var processEndDrag = F2(function (_v45,
    m) {
       return function () {
          return function () {
-            var _v37 = m.mode;
-            switch (_v37.ctor)
+            var _v47 = m.mode;
+            switch (_v47.ctor)
             {case "Dragging":
                return _U.replace([["mode"
-                                  ,_v37._2]],
+                                  ,$Types.DefaultMode]],
                  m);}
             return m;
          }();
       }();
    });
-   var processMove = F3(function (_v41,
+   var processMove = F3(function (_v49,
    pos,
    m) {
       return function () {
-         return _U.replace([["hovered"
-                            ,A2(findObjectIDsAt,pos,m)]],
-         m);
+         return function () {
+            var $ = pos,x = $.x,y = $.y;
+            return function () {
+               var _v51 = m.mode;
+               switch (_v51.ctor)
+               {case "DefaultMode":
+                  return _U.replace([["hovered"
+                                     ,$Maybe.map(function (o) {
+                                        return o.id;
+                                     })(closest(A2(objectsAt,
+                                     pos,
+                                     m)))]],
+                    m);
+                  case "Delete":
+                  return _U.replace([["hovered"
+                                     ,$Maybe.map(function (o) {
+                                        return o.id;
+                                     })(closest(A2(objectsAt,
+                                     pos,
+                                     m)))]],
+                    m);
+                  case "Dragging": return m;
+                  case "DrawCircle0":
+                  return _U.replace([["hovered"
+                                     ,$Maybe.map(function (o) {
+                                        return o.id;
+                                     })(closest($List.filter(function ($) {
+                                        return isPoint($Basics.snd($));
+                                     })(A2(pointsAt,pos,m))))]],
+                    m);
+                  case "DrawCircle1":
+                  return _U.replace([["hovered"
+                                     ,$Maybe.map(function (o) {
+                                        return o.id;
+                                     })(closest($List.filter(function ($) {
+                                        return isPoint($Basics.snd($));
+                                     })(A2(pointsAt,pos,m))))]],
+                    m);
+                  case "DrawLine0":
+                  return _U.replace([["hovered"
+                                     ,$Maybe.map(function (o) {
+                                        return o.id;
+                                     })(closest($List.filter(function ($) {
+                                        return isPoint($Basics.snd($));
+                                     })(A2(pointsAt,pos,m))))]],
+                    m);
+                  case "DrawLine1":
+                  return _U.replace([["hovered"
+                                     ,$Maybe.map(function (o) {
+                                        return o.id;
+                                     })(closest($List.filter(function ($) {
+                                        return isPoint($Basics.snd($));
+                                     })(A2(pointsAt,pos,m))))]],
+                    m);
+                  case "Intersect0":
+                  return _U.replace([["hovered"
+                                     ,$Maybe.map(function (o) {
+                                        return o.id;
+                                     })(closest($List.filter(function ($) {
+                                        return isOneDim($Basics.snd($));
+                                     })(A2(oneDimsAt,pos,m))))]],
+                    m);
+                  case "Intersect1":
+                  return _U.replace([["hovered"
+                                     ,$Maybe.map(function (o) {
+                                        return o.id;
+                                     })(closest($List.filter(function ($) {
+                                        return isOneDim($Basics.snd($));
+                                     })(A2(oneDimsAt,pos,m))))]],
+                    m);
+                  case "Selected":
+                  return _U.replace([["hovered"
+                                     ,$Maybe.map(function (o) {
+                                        return o.id;
+                                     })(closest(A2(objectsAt,
+                                     pos,
+                                     m)))]],
+                    m);}
+               _U.badCase($moduleName,
+               "between lines 188 and 207");
+            }();
+         }();
       }();
    });
-   var processMouseDown = F2(function (_v43,
+   var processMouseDown = F2(function (p,
    m) {
       return function () {
+         var $ = p,x = $.x,y = $.y;
          return function () {
-            var _v45 = m.mode;
-            switch (_v45.ctor)
+            var _v57 = m.mode;
+            switch (_v57.ctor)
             {case "DefaultMode":
                return function () {
-                    var _v46 = A2(findClosestPointAt,
-                    {ctor: "_Tuple2"
-                    ,_0: _v43.x
-                    ,_1: _v43.y},
-                    m);
-                    switch (_v46.ctor)
+                    var _v58 = closest($List.filter(function ($) {
+                       return isFreePoint($Basics.snd($));
+                    })(A2(pointsAt,p,m)));
+                    switch (_v58.ctor)
                     {case "Just":
                        return _U.replace([["mode"
-                                          ,A3($Types.Dragging,
-                                          _v46._0,
-                                          false,
-                                          m.mode)]],
+                                          ,$Types.Dragging(_v58._0.id)]],
                          m);
                        case "Nothing": return m;}
                     _U.badCase($moduleName,
@@ -3719,24 +3849,24 @@ Elm.Model.make = function (_elm) {
          function (point2) {
             return A2($Maybe.andThen,
             function () {
-               var _v48 = point1.object;
-               switch (_v48.ctor)
+               var _v60 = point1.object;
+               switch (_v60.ctor)
                {case "FreePoint":
-                  return $Maybe.Just(_v48._0);
+                  return $Maybe.Just(_v60._0);
                   case "Intersect":
-                  return _v48._0.point;}
+                  return _v60._0.point;}
                _U.badCase($moduleName,
                "between lines 104 and 106");
             }(),
             function (x) {
                return A2($Maybe.andThen,
                function () {
-                  var _v51 = point2.object;
-                  switch (_v51.ctor)
+                  var _v63 = point2.object;
+                  switch (_v63.ctor)
                   {case "FreePoint":
-                     return $Maybe.Just(_v51._0);
+                     return $Maybe.Just(_v63._0);
                      case "Intersect":
-                     return _v51._0.point;}
+                     return _v63._0.point;}
                   _U.badCase($moduleName,
                   "between lines 107 and 109");
                }(),
@@ -3820,24 +3950,24 @@ Elm.Model.make = function (_elm) {
          function (point2) {
             return A2($Maybe.andThen,
             function () {
-               var _v54 = point1.object;
-               switch (_v54.ctor)
+               var _v66 = point1.object;
+               switch (_v66.ctor)
                {case "FreePoint":
-                  return $Maybe.Just(_v54._0);
+                  return $Maybe.Just(_v66._0);
                   case "Intersect":
-                  return _v54._0.point;}
+                  return _v66._0.point;}
                _U.badCase($moduleName,
                "between lines 75 and 77");
             }(),
             function (x) {
                return A2($Maybe.andThen,
                function () {
-                  var _v57 = point2.object;
-                  switch (_v57.ctor)
+                  var _v69 = point2.object;
+                  switch (_v69.ctor)
                   {case "FreePoint":
-                     return $Maybe.Just(_v57._0);
+                     return $Maybe.Just(_v69._0);
                      case "Intersect":
-                     return _v57._0.point;}
+                     return _v69._0.point;}
                   _U.badCase($moduleName,
                   "between lines 78 and 80");
                }(),
@@ -3900,20 +4030,20 @@ Elm.Model.make = function (_elm) {
          model.objects),
          function (obj2) {
             return function () {
-               var _v60 = {ctor: "_Tuple2"
+               var _v72 = {ctor: "_Tuple2"
                           ,_0: obj1.object
                           ,_1: obj2.object};
-               switch (_v60.ctor)
+               switch (_v72.ctor)
                {case "_Tuple2":
-                  switch (_v60._0.ctor)
+                  switch (_v72._0.ctor)
                     {case "Circle":
-                       switch (_v60._1.ctor)
+                       switch (_v72._1.ctor)
                          {case "Circle":
                             return A2($Maybe.andThen,
-                              _v60._0._0.desc,
+                              _v72._0._0.desc,
                               function (c1) {
                                  return A2($Maybe.andThen,
-                                 _v60._1._0.desc,
+                                 _v72._1._0.desc,
                                  function (c2) {
                                     return A3($Math.circleCircleIntersection,
                                     inter.whichOne,
@@ -3923,10 +4053,10 @@ Elm.Model.make = function (_elm) {
                               });
                             case "Straight":
                             return A2($Maybe.andThen,
-                              _v60._1._0.desc,
+                              _v72._1._0.desc,
                               function (l) {
                                  return A2($Maybe.andThen,
-                                 _v60._0._0.desc,
+                                 _v72._0._0.desc,
                                  function (c) {
                                     return A3($Math.lineCircleIntersection,
                                     inter.whichOne,
@@ -3936,13 +4066,13 @@ Elm.Model.make = function (_elm) {
                               });}
                          break;
                        case "Straight":
-                       switch (_v60._1.ctor)
+                       switch (_v72._1.ctor)
                          {case "Circle":
                             return A2($Maybe.andThen,
-                              _v60._0._0.desc,
+                              _v72._0._0.desc,
                               function (l) {
                                  return A2($Maybe.andThen,
-                                 _v60._1._0.desc,
+                                 _v72._1._0.desc,
                                  function (c) {
                                     return A3($Math.lineCircleIntersection,
                                     inter.whichOne,
@@ -3952,10 +4082,10 @@ Elm.Model.make = function (_elm) {
                               });
                             case "Straight":
                             return A2($Maybe.andThen,
-                              _v60._0._0.desc,
+                              _v72._0._0.desc,
                               function (l1) {
                                  return A2($Maybe.andThen,
-                                 _v60._1._0.desc,
+                                 _v72._1._0.desc,
                                  function (l2) {
                                     return A2($Math.lineLineIntersection,
                                     l1,
@@ -4033,35 +4163,31 @@ Elm.Model.make = function (_elm) {
    to,
    m) {
       return function () {
-         var _v74 = m.mode;
-         switch (_v74.ctor)
+         var _v86 = m.mode;
+         switch (_v86.ctor)
          {case "Dragging":
             return function () {
                  var modCoords = $Maybe.map(function (p) {
                     return function () {
-                       var _v78 = p.object;
-                       switch (_v78.ctor)
+                       var _v88 = p.object;
+                       switch (_v88.ctor)
                        {case "FreePoint":
                           return _U.replace([["object"
                                              ,$Types.FreePoint({_: {}
-                                                               ,x: to.x - from.x + _v78._0.x
-                                                               ,y: to.y - from.y + _v78._0.y})]],
+                                                               ,x: to.x - from.x + _v88._0.x
+                                                               ,y: to.y - from.y + _v88._0.y})]],
                             p);}
                        return p;
                     }();
                  });
                  var objects$ = A3($Dict.update,
-                 _v74._0,
+                 _v86._0,
                  modCoords,
                  m.objects);
                  return A2(updateRevDeps,
-                 _v74._0,
-                 _U.replace([["objects",objects$]
-                            ,["mode"
-                             ,A3($Types.Dragging,
-                             _v74._0,
-                             true,
-                             _v74._2)]],
+                 _v86._0,
+                 _U.replace([["objects"
+                             ,objects$]],
                  m));
               }();}
          return m;
@@ -4080,38 +4206,38 @@ Elm.Model.make = function (_elm) {
          id1,
          m.objects));
          var inter = function () {
-            var _v80 = {ctor: "_Tuple2"
+            var _v90 = {ctor: "_Tuple2"
                        ,_0: obj1.object
                        ,_1: obj2.object};
-            switch (_v80.ctor)
+            switch (_v90.ctor)
             {case "_Tuple2":
-               switch (_v80._0.ctor)
+               switch (_v90._0.ctor)
                  {case "Circle":
-                    switch (_v80._1.ctor)
+                    switch (_v90._1.ctor)
                       {case "Circle":
                          return A5($Math.chooseCloserPointCC,
                            m,
-                           $Types.fromJust(_v80._0._0.desc),
-                           $Types.fromJust(_v80._1._0.desc),
+                           $Types.fromJust(_v90._0._0.desc),
+                           $Types.fromJust(_v90._1._0.desc),
                            closePoint,
                            {_: {},first: id1,second: id2});
                          case "Straight":
                          return A5($Math.chooseCloserPointLC,
                            m,
-                           $Types.fromJust(_v80._1._0.desc),
-                           $Types.fromJust(_v80._0._0.desc),
+                           $Types.fromJust(_v90._1._0.desc),
+                           $Types.fromJust(_v90._0._0.desc),
                            closePoint,
                            {_: {}
                            ,first: id1
                            ,second: id2});}
                       break;
                     case "Straight":
-                    switch (_v80._1.ctor)
+                    switch (_v90._1.ctor)
                       {case "Circle":
                          return A5($Math.chooseCloserPointLC,
                            m,
-                           $Types.fromJust(_v80._0._0.desc),
-                           $Types.fromJust(_v80._1._0.desc),
+                           $Types.fromJust(_v90._0._0.desc),
+                           $Types.fromJust(_v90._1._0.desc),
                            closePoint,
                            {_: {},first: id1,second: id2});
                          case "Straight": return {_: {}
@@ -4163,95 +4289,79 @@ Elm.Model.make = function (_elm) {
          m);
       }();
    });
-   var processMouseUp = F2(function (_v89,
+   var processMouseUp = F2(function (pos,
    m) {
       return function () {
+         var $ = pos,x = $.x,y = $.y;
          return function () {
-            var _v91 = m.mode;
-            switch (_v91.ctor)
+            var _v99 = m.mode;
+            switch (_v99.ctor)
             {case "DefaultMode":
-               return A2(newFreePoint,
-                 {_: {},x: _v89.x,y: _v89.y},
-                 m);
+               return function () {
+                    var _v105 = closest(A2(objectsAt,
+                    pos,
+                    m));
+                    switch (_v105.ctor)
+                    {case "Just":
+                       return _U.replace([["mode"
+                                          ,$Types.Selected(_v105._0.id)]],
+                         m);
+                       case "Nothing":
+                       return A2(newFreePoint,
+                         pos,
+                         _U.replace([["mode"
+                                     ,$Types.DefaultMode]],
+                         m));}
+                    _U.badCase($moduleName,
+                    "between lines 216 and 219");
+                 }();
                case "Delete":
                return function () {
-                    var _v99 = $Set.toList(A2(findObjectIDsAt,
-                    {_: {},x: _v89.x,y: _v89.y},
+                    var _v107 = closest(A2(objectsAt,
+                    pos,
                     m));
-                    switch (_v99.ctor)
-                    {case "::":
-                       switch (_v99._1.ctor)
-                         {case "[]":
-                            return A2(deleteObject,
-                              _v99._0,
-                              _U.replace([["mode"
-                                          ,$Types.DefaultMode]],
-                              m));}
-                         break;}
+                    switch (_v107.ctor)
+                    {case "Just":
+                       return A2(deleteObject,
+                         _v107._0.id,
+                         _U.replace([["mode"
+                                     ,$Types.DefaultMode]],
+                         m));}
                     return _U.replace([["mode"
                                        ,$Types.DefaultMode]],
                     m);
                  }();
                case "Dragging":
-               return function () {
-                    var _v102 = A2(findClosestPointAt,
-                    {ctor: "_Tuple2"
-                    ,_0: _v89.x
-                    ,_1: _v89.y},
-                    m);
-                    switch (_v102.ctor)
-                    {case "Just":
-                       return function () {
-                            return _U.replace([["mode"
-                                               ,$Types.Selected(_v102._0)]],
-                            m);
-                         }();
-                       case "Nothing":
-                       return function () {
-                            switch (_v91._2.ctor)
-                            {case "Selected":
-                               return _U.replace([["mode"
-                                                  ,$Types.DefaultMode]],
-                                 m);}
-                            return A2(newFreePoint,
-                            {_: {},x: _v89.x,y: _v89.y},
-                            _U.replace([["mode",_v91._2]],
-                            m));
-                         }();}
-                    _U.badCase($moduleName,
-                    "between lines 222 and 227");
-                 }();
+               return _U.replace([["mode"
+                                  ,$Types.Selected(_v99._0)]],
+                 m);
                case "DrawCircle0":
                return function () {
-                    var _v107 = A2(findClosestPointAt,
-                    {ctor: "_Tuple2"
-                    ,_0: _v89.x
-                    ,_1: _v89.y},
-                    m);
-                    switch (_v107.ctor)
+                    var _v109 = closest($List.filter(function ($) {
+                       return isPoint($Basics.snd($));
+                    })(A2(pointsAt,pos,m)));
+                    switch (_v109.ctor)
                     {case "Just":
                        return _U.replace([["mode"
-                                          ,$Types.DrawCircle1(_v107._0)]],
+                                          ,$Types.DrawCircle1(_v109._0.id)]],
                          m);
                        case "Nothing":
                        return _U.replace([["mode"
                                           ,$Types.DefaultMode]],
                          m);}
                     _U.badCase($moduleName,
-                    "between lines 205 and 208");
+                    "between lines 228 and 231");
                  }();
                case "DrawCircle1":
                return function () {
-                    var _v109 = A2(findClosestPointAt,
-                    {ctor: "_Tuple2"
-                    ,_0: _v89.x
-                    ,_1: _v89.y},
-                    m);
-                    switch (_v109.ctor)
+                    var _v111 = closest($List.filter(function ($) {
+                       return isPoint($Basics.snd($));
+                    })(A2(pointsAt,pos,m)));
+                    switch (_v111.ctor)
                     {case "Just":
                        return A3(newCircle,
-                         _v91._0,
-                         _v109._0,
+                         _v99._0,
+                         _v111._0.id,
                          _U.replace([["mode"
                                      ,$Types.DefaultMode]],
                          m));
@@ -4260,39 +4370,35 @@ Elm.Model.make = function (_elm) {
                                           ,$Types.DefaultMode]],
                          m);}
                     _U.badCase($moduleName,
-                    "between lines 208 and 211");
+                    "between lines 231 and 234");
                  }();
                case "DrawLine0":
                return function () {
-                    var _v111 = A2(findClosestPointAt,
-                    {ctor: "_Tuple2"
-                    ,_0: _v89.x
-                    ,_1: _v89.y},
-                    m);
-                    switch (_v111.ctor)
+                    var _v113 = closest($List.filter(function ($) {
+                       return isPoint($Basics.snd($));
+                    })(A2(pointsAt,pos,m)));
+                    switch (_v113.ctor)
                     {case "Just":
                        return _U.replace([["mode"
-                                          ,$Types.DrawLine1(_v111._0)]],
+                                          ,$Types.DrawLine1(_v113._0.id)]],
                          m);
                        case "Nothing":
                        return _U.replace([["mode"
                                           ,$Types.DefaultMode]],
                          m);}
                     _U.badCase($moduleName,
-                    "between lines 199 and 202");
+                    "between lines 222 and 225");
                  }();
                case "DrawLine1":
                return function () {
-                    var _v113 = A2(findClosestPointAt,
-                    {ctor: "_Tuple2"
-                    ,_0: _v89.x
-                    ,_1: _v89.y},
-                    m);
-                    switch (_v113.ctor)
+                    var _v115 = closest($List.filter(function ($) {
+                       return isPoint($Basics.snd($));
+                    })(A2(pointsAt,pos,m)));
+                    switch (_v115.ctor)
                     {case "Just":
                        return A3(newStraightLine,
-                         _v91._0,
-                         _v113._0,
+                         _v99._0,
+                         _v115._0.id,
                          _U.replace([["mode"
                                      ,$Types.DefaultMode]],
                          m));
@@ -4301,60 +4407,65 @@ Elm.Model.make = function (_elm) {
                                           ,$Types.DefaultMode]],
                          m);}
                     _U.badCase($moduleName,
-                    "between lines 202 and 205");
+                    "between lines 225 and 228");
                  }();
                case "Intersect0":
                return function () {
-                    var _v115 = $Set.toList(A2(findOneDimObjectIDsAt,
-                    {_: {},x: _v89.x,y: _v89.y},
-                    m));
-                    switch (_v115.ctor)
-                    {case "::":
-                       switch (_v115._1.ctor)
-                         {case "[]":
-                            return _U.replace([["mode"
-                                               ,$Types.Intersect1(_v115._0)]],
-                              m);}
-                         break;
-                       case "[]":
+                    var _v117 = closest($List.filter(function ($) {
+                       return isOneDim($Basics.snd($));
+                    })(A2(oneDimsAt,pos,m)));
+                    switch (_v117.ctor)
+                    {case "Just":
+                       return _U.replace([["mode"
+                                          ,$Types.Intersect1(_v117._0.id)]],
+                         m);
+                       case "Nothing":
                        return _U.replace([["mode"
                                           ,$Types.DefaultMode]],
                          m);}
-                    return _U.replace([["mode"
-                                       ,$Types.DefaultMode]],
-                    m);
+                    _U.badCase($moduleName,
+                    "between lines 234 and 237");
                  }();
                case "Intersect1":
                return function () {
-                    var _v118 = $Set.toList(A2(findOneDimObjectIDsAt,
-                    {_: {},x: _v89.x,y: _v89.y},
+                    var _v119 = closest(A2(oneDimsAt,
+                    pos,
                     m));
-                    switch (_v118.ctor)
-                    {case "::":
-                       switch (_v118._1.ctor)
-                         {case "[]":
-                            return A4(newIntersection,
-                              _v91._0,
-                              _v118._0,
-                              {_: {},x: _v89.x,y: _v89.y},
-                              _U.replace([["mode"
-                                          ,$Types.DefaultMode]],
-                              m));}
-                         break;
-                       case "[]":
+                    switch (_v119.ctor)
+                    {case "Just":
+                       return A4(newIntersection,
+                         _v99._0,
+                         _v119._0.id,
+                         {_: {},x: x,y: y},
+                         _U.replace([["mode"
+                                     ,$Types.DefaultMode]],
+                         m));
+                       case "Nothing":
                        return _U.replace([["mode"
                                           ,$Types.DefaultMode]],
                          m);}
-                    return _U.replace([["mode"
-                                       ,$Types.DefaultMode]],
-                    m);
+                    _U.badCase($moduleName,
+                    "between lines 237 and 240");
                  }();
                case "Selected":
-               return _U.replace([["mode"
-                                  ,$Types.DefaultMode]],
-                 m);}
+               return function () {
+                    var _v121 = closest(A2(objectsAt,
+                    pos,
+                    m));
+                    switch (_v121.ctor)
+                    {case "Just":
+                       return _U.replace([["mode"
+                                          ,$Types.Selected(_v121._0.id)]],
+                         m);
+                       case "Nothing":
+                       return _U.replace([["mode"
+                                          ,$Types.DefaultMode]],
+                         m);}
+                    _U.badCase($moduleName,
+                    "between lines 219 and 222");
+                 }();}
             _U.badCase($moduleName,
-            "between lines 196 and 227");
+            "between lines 215 and 243");
          }();
       }();
    });
@@ -4364,17 +4475,17 @@ Elm.Model.make = function (_elm) {
          switch (action.ctor)
          {case "ChangeMode":
             return function () {
-                 var _v127 = {ctor: "_Tuple2"
+                 var _v129 = {ctor: "_Tuple2"
                              ,_0: m.mode
                              ,_1: action._0};
-                 switch (_v127.ctor)
+                 switch (_v129.ctor)
                  {case "_Tuple2":
-                    switch (_v127._0.ctor)
+                    switch (_v129._0.ctor)
                       {case "Selected":
-                         switch (_v127._1.ctor)
+                         switch (_v129._1.ctor)
                            {case "Delete":
                               return A2(deleteObject,
-                                _v127._0._0,
+                                _v129._0._0,
                                 _U.replace([["mode"
                                             ,$Types.DefaultMode]],
                                 m));}
@@ -4397,13 +4508,13 @@ Elm.Model.make = function (_elm) {
                       y = $._1;
                       var pos = {_: {},x: x,y: y};
                       return function () {
-                         var _v131 = {ctor: "_Tuple2"
+                         var _v133 = {ctor: "_Tuple2"
                                      ,_0: m.mouseDown
                                      ,_1: action._1};
-                         switch (_v131.ctor)
+                         switch (_v133.ctor)
                          {case "_Tuple2":
-                            switch (_v131._0)
-                              {case false: switch (_v131._1)
+                            switch (_v133._0)
+                              {case false: switch (_v133._1)
                                    {case false:
                                       return A3(processMove,
                                         m.mousePosition,
@@ -4419,7 +4530,7 @@ Elm.Model.make = function (_elm) {
                                                    ,["mouseDragged",false]],
                                         m));}
                                    break;
-                                 case true: switch (_v131._1)
+                                 case true: switch (_v133._1)
                                    {case false:
                                       return A2(m.mouseDragged ? processEndDrag : processMouseUp,
                                         pos,
@@ -4473,12 +4584,19 @@ Elm.Model.make = function (_elm) {
                        ,isHighlighted: isHighlighted
                        ,isSelected: isSelected
                        ,isHovered: isHovered
-                       ,findObjectIDsAt: findObjectIDsAt
-                       ,findObjectsAt: findObjectsAt
-                       ,findOneDimObjectIDsAt: findOneDimObjectIDsAt
+                       ,isFreePoint: isFreePoint
+                       ,isIntersection: isIntersection
+                       ,isLine: isLine
+                       ,isCircle: isCircle
                        ,isOneDim: isOneDim
-                       ,isObjectAt: isObjectAt
-                       ,findClosestPointAt: findClosestPointAt
+                       ,isPoint: isPoint
+                       ,threshold: threshold
+                       ,pointsAt: pointsAt
+                       ,oneDimsAt: oneDimsAt
+                       ,objectsAt: objectsAt
+                       ,withDistance: withDistance
+                       ,closest: closest
+                       ,distance: distance
                        ,transformMouseCoords: transformMouseCoords
                        ,emptyModel: emptyModel};
    return _elm.Model.values;
@@ -8446,14 +8564,10 @@ Elm.Types.make = function (_elm) {
              ,_0: a
              ,_1: b};
    });
-   var Dragging = F3(function (a,
-   b,
-   c) {
+   var Dragging = function (a) {
       return {ctor: "Dragging"
-             ,_0: a
-             ,_1: b
-             ,_2: c};
-   });
+             ,_0: a};
+   };
    var Delete = {ctor: "Delete"};
    var Intersect1 = function (a) {
       return {ctor: "Intersect1"
