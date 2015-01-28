@@ -21,7 +21,7 @@ drawGeoObject : Model -> GeoObject -> Form
 drawGeoObject m geo = case geo.object of
   FreePoint v -> drawFreePoint (isHighlighted m geo.id) v
   Intersect { point } -> case point of
-    Just point -> drawFreePoint (isHighlighted m geo.id) point
+    Just point -> drawIntersectPoint (isHighlighted m geo.id) point
     Nothing -> emptyForm
   Straight { desc } -> case desc of
     Just d -> drawLine (isHighlighted m geo.id) m.dimensions d
@@ -42,7 +42,11 @@ drawLine highlighted (width, height) desc =
     segment (start.x, start.y) (end.x, end.y)  
 
 drawFreePoint : Bool -> Vector -> Form
-drawFreePoint highlighted p = let point = filled red <| circle (if highlighted then 8 else 5)
+drawFreePoint highlighted p = let point = filled red <| circle (if highlighted then 6 else 4)
+  in move (p.x, p.y) point
+
+drawIntersectPoint : Bool -> Vector -> Form
+drawIntersectPoint highlighted p = let point = filled black <| circle (if highlighted then 6 else 4)
   in move (p.x, p.y) point
 
 emptyForm : Form
