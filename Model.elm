@@ -14,13 +14,13 @@ import Types (..)
 
 -- ** Adding free points
 
-newFreePoint : Vector -> Model -> Model
+newFreePoint : Vector -> Model -> (Model, ID)
 newFreePoint v m =
   let id = m.newID
-  in { m
+  in ({ m
      | objects <- Dict.insert m.newID (freePoint id v) m.objects
      , newID <- id + 1
-     }
+     }, id)
 
 freePoint : ID -> Vector -> GeoObject
 freePoint id v = { id = id, name = "P" ++ toString id, revDeps = Set.empty, deps = Set.empty, object = FreePoint v }
@@ -215,22 +215,26 @@ processMouseUp : Vector -> Model -> Model
 processMouseUp pos m = let { x, y } = pos in case m.mode of
   DefaultMode -> case closest <| objectsAt pos m of
     Just o -> {m | mode <- Selected o.id }
-    Nothing -> newFreePoint pos {m | mode <- DefaultMode }
+    Nothing -> fst <| newFreePoint pos {m | mode <- DefaultMode }
   Selected _ -> case closest <| objectsAt pos m of
     Just o -> {m | mode <- Selected o.id }
     Nothing -> {m | mode <- DefaultMode }
   DrawLine0 -> case closest <| List.filter (isPoint << snd) <| pointsAt pos m of
     Just p -> { m | mode <- DrawLine1 p.id }
-    Nothing -> { m | mode <- DefaultMode }
+    Nothing -> let (m', id) = newFreePoint pos m
+      in { m' | mode <- DrawLine1 id }
   DrawLine1 p -> case closest <| List.filter (isPoint << snd) <| pointsAt pos m of
     Just q -> newStraightLine p q.id { m | mode <- DefaultMode }
-    Nothing -> { m | mode <- DefaultMode }
+    Nothing -> let (m', id) = newFreePoint pos m
+      in newStraightLine p id { m' | mode <- DefaultMode }
   DrawCircle0 -> case closest <| List.filter (isPoint << snd) <| pointsAt pos m of
     Just p -> { m | mode <- DrawCircle1 p.id }
-    Nothing -> { m | mode <- DefaultMode }
+    Nothing -> let (m', id) = newFreePoint pos m
+      in { m' | mode <- DrawCircle1 id }
   DrawCircle1 p -> case closest <| List.filter (isPoint << snd) <| pointsAt pos m of
     Just q -> newCircle p q.id { m | mode <- DefaultMode }
-    Nothing -> { m | mode <- DefaultMode }
+    Nothing -> let (m', id) = newFreePoint pos m
+      in newCircle p id { m' | mode <- DefaultMode }
   Intersect0 -> case closest <| List.filter (isOneDim << snd) <| oneDimsAt pos m of
     Nothing -> { m | mode <- DefaultMode }
     Just obj -> { m | mode <- Intersect1 obj.id }
