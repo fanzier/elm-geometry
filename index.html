@@ -1,16 +1,17 @@
 <html>
 <head>
-<title>Dynamic Geometry in Elm</title>
+<title>Dynamic Geometry with Elm</title>
 <script type="text/javascript" src="elm.js"></script>
 </head>
-<body>
+<body style="font-family: sans">
 <div id="wrap" style="margin: auto;width:1202px;">
+<h1>Dynamic Geometry with Elm</h1>
   <div id="geo" style="height: 600px;width: 1200px;border: 1px solid gray;">
   </div>
-  <button id="lineButton">Line</button>
-  <button id="circleButton">Circle</button>
-  <button id="intersectButton">Intersect</button>
-  <button id="deleteButton">Delete</button>
+  <button id="lineButton" style="color:blue">Line</button>
+  <button id="circleButton" style="color:green">Circle</button>
+  <button id="intersectButton" style="color:black">Intersect</button>
+  <button id="deleteButton" style="color:gray">Delete</button>
   <script type="text/javascript">
     var geoDiv = document.getElementById('geo');
     var elmGeo = Elm.embed(Elm.Main, geoDiv,
@@ -28,6 +29,17 @@
     deleteButton.onclick = function() { elmGeo.ports.deleteButtonClick.send([]); }
     intersectButton.onclick = function() { elmGeo.ports.intersectButtonClick.send([]); }
   </script>
+  <p>
+    <h2>Quick help</h2>
+    <ul>
+      <li><strong style="color:red">(Free) Points:</strong> Click on a blank area to draw a point. You can move it later.</li>
+      <li><strong style="color:blue">Lines:</strong> Draw a line by clicking on 2 points on the line. You can also create the two points as you go.</li>
+      <li><strong style="color:green">Circles:</strong> Draw a circle by clicking on its center and then on a point on its boundary. You can also create the two points as you go.</li>
+      <li><strong style="color:black">Intersections:</strong> To draw an intersection point click on the two objects. If there are two intersection points, the one closer to your last click is chosen.</li>
+      <li><strong style="color:gray">Deletion:</strong> Select an object and click delete or vice versa.
+    </ul>
+    You can <strong>drag and drop</strong> free points and the display changes dynamically.
+  </p>
 </div>
 </body>
 </html>

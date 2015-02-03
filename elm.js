@@ -3461,10 +3461,10 @@ Elm.Model.make = function (_elm) {
                            ,_0: $Basics.toFloat(_v1._0 - (_v0._0 / 2 | 0))
                            ,_1: $Basics.toFloat((_v0._1 / 2 | 0) - _v1._1)};}
                  _U.badCase($moduleName,
-                 "on line 327, column 39 to 83");
+                 "on line 331, column 39 to 83");
               }();}
          _U.badCase($moduleName,
-         "on line 327, column 39 to 83");
+         "on line 331, column 39 to 83");
       }();
    });
    var distance = F2(function (p,
@@ -3490,7 +3490,7 @@ Elm.Model.make = function (_elm) {
                  p,
                  _v10._0.desc);}
             _U.badCase($moduleName,
-            "between lines 320 and 324");
+            "between lines 324 and 328");
          }();
       }();
    });
@@ -3515,10 +3515,10 @@ Elm.Model.make = function (_elm) {
                                              ,_0: _v15._0
                                              ,_1: _v15._1});}
                        _U.badCase($moduleName,
-                       "between lines 314 and 317");
+                       "between lines 318 and 321");
                     }();}
                _U.badCase($moduleName,
-               "between lines 314 and 317");
+               "between lines 318 and 321");
             }();
          });
          return $Maybe.map($Basics.snd)(A3($List.foldr,
@@ -3637,7 +3637,7 @@ Elm.Model.make = function (_elm) {
             case "Selected":
             return _U.eq(_v39._0,i);}
          _U.badCase($moduleName,
-         "between lines 250 and 260");
+         "between lines 254 and 264");
       }();
    });
    var isHighlighted = F2(function (m,
@@ -4280,13 +4280,15 @@ Elm.Model.make = function (_elm) {
    m) {
       return function () {
          var id = m.newID;
-         return _U.replace([["objects"
-                            ,A3($Dict.insert,
-                            m.newID,
-                            A2(freePoint,id,v),
-                            m.objects)]
-                           ,["newID",id + 1]],
-         m);
+         return {ctor: "_Tuple2"
+                ,_0: _U.replace([["objects"
+                                 ,A3($Dict.insert,
+                                 m.newID,
+                                 A2(freePoint,id,v),
+                                 m.objects)]
+                                ,["newID",id + 1]],
+                m)
+                ,_1: id};
       }();
    });
    var processMouseUp = F2(function (pos,
@@ -4307,11 +4309,11 @@ Elm.Model.make = function (_elm) {
                                           ,$Types.Selected(_v105._0.id)]],
                          m);
                        case "Nothing":
-                       return A2(newFreePoint,
+                       return $Basics.fst(A2(newFreePoint,
                          pos,
                          _U.replace([["mode"
                                      ,$Types.DefaultMode]],
-                         m));}
+                         m)));}
                     _U.badCase($moduleName,
                     "between lines 216 and 219");
                  }();
@@ -4346,11 +4348,18 @@ Elm.Model.make = function (_elm) {
                                           ,$Types.DrawCircle1(_v109._0.id)]],
                          m);
                        case "Nothing":
-                       return _U.replace([["mode"
-                                          ,$Types.DefaultMode]],
-                         m);}
+                       return function () {
+                            var $ = A2(newFreePoint,
+                            pos,
+                            m),
+                            m$ = $._0,
+                            id = $._1;
+                            return _U.replace([["mode"
+                                               ,$Types.DrawCircle1(id)]],
+                            m$);
+                         }();}
                     _U.badCase($moduleName,
-                    "between lines 228 and 231");
+                    "between lines 230 and 234");
                  }();
                case "DrawCircle1":
                return function () {
@@ -4366,11 +4375,21 @@ Elm.Model.make = function (_elm) {
                                      ,$Types.DefaultMode]],
                          m));
                        case "Nothing":
-                       return _U.replace([["mode"
-                                          ,$Types.DefaultMode]],
-                         m);}
+                       return function () {
+                            var $ = A2(newFreePoint,
+                            pos,
+                            m),
+                            m$ = $._0,
+                            id = $._1;
+                            return A3(newCircle,
+                            _v99._0,
+                            id,
+                            _U.replace([["mode"
+                                        ,$Types.DefaultMode]],
+                            m$));
+                         }();}
                     _U.badCase($moduleName,
-                    "between lines 231 and 234");
+                    "between lines 234 and 238");
                  }();
                case "DrawLine0":
                return function () {
@@ -4383,11 +4402,18 @@ Elm.Model.make = function (_elm) {
                                           ,$Types.DrawLine1(_v113._0.id)]],
                          m);
                        case "Nothing":
-                       return _U.replace([["mode"
-                                          ,$Types.DefaultMode]],
-                         m);}
+                       return function () {
+                            var $ = A2(newFreePoint,
+                            pos,
+                            m),
+                            m$ = $._0,
+                            id = $._1;
+                            return _U.replace([["mode"
+                                               ,$Types.DrawLine1(id)]],
+                            m$);
+                         }();}
                     _U.badCase($moduleName,
-                    "between lines 222 and 225");
+                    "between lines 222 and 226");
                  }();
                case "DrawLine1":
                return function () {
@@ -4403,11 +4429,21 @@ Elm.Model.make = function (_elm) {
                                      ,$Types.DefaultMode]],
                          m));
                        case "Nothing":
-                       return _U.replace([["mode"
-                                          ,$Types.DefaultMode]],
-                         m);}
+                       return function () {
+                            var $ = A2(newFreePoint,
+                            pos,
+                            m),
+                            m$ = $._0,
+                            id = $._1;
+                            return A3(newStraightLine,
+                            _v99._0,
+                            id,
+                            _U.replace([["mode"
+                                        ,$Types.DefaultMode]],
+                            m$));
+                         }();}
                     _U.badCase($moduleName,
-                    "between lines 225 and 228");
+                    "between lines 226 and 230");
                  }();
                case "Intersect0":
                return function () {
@@ -4424,7 +4460,7 @@ Elm.Model.make = function (_elm) {
                                           ,$Types.DefaultMode]],
                          m);}
                     _U.badCase($moduleName,
-                    "between lines 234 and 237");
+                    "between lines 238 and 241");
                  }();
                case "Intersect1":
                return function () {
@@ -4445,7 +4481,7 @@ Elm.Model.make = function (_elm) {
                                           ,$Types.DefaultMode]],
                          m);}
                     _U.badCase($moduleName,
-                    "between lines 237 and 240");
+                    "between lines 241 and 244");
                  }();
                case "Selected":
                return function () {
@@ -4465,7 +4501,7 @@ Elm.Model.make = function (_elm) {
                     "between lines 219 and 222");
                  }();}
             _U.badCase($moduleName,
-            "between lines 215 and 243");
+            "between lines 215 and 247");
          }();
       }();
    });
